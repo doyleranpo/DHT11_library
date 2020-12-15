@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define MAX_TIMINGS 85
 #define DHT_PIN     27
@@ -47,14 +48,14 @@ void write_value(int val)
 {
     int ret = gpiod_line_set_value(line, val);
     if (ret < 0) 
-        gpiod_line_release(line)
+        gpiod_line_release(line);
 }
 
 int read_value()
 {
-    int val = gpiod_line_get_value(line)
+    int val = gpiod_line_get_value(line);
     if (val < 0)
-        gpiod_line_release(line)
+        gpiod_line_release(line);
     return val;
 }
     
@@ -97,7 +98,7 @@ void read_dht()
         }
     }
     
-    if ((j>=40) && (data[4] == ( ( data[0] + data[1] + data[2] + data[3]) & 0xFF))
+    if ((j>=40) && (data[4] == ( ( data[0] + data[1] + data[2] + data[3]) & 0xFF)))
     {
         printf("Humidity = %d/%d %% Temperature = %d.%d C\n",data[0],data[1],data[2],data[3]);
     }
