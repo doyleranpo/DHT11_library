@@ -47,7 +47,6 @@ void read_dht11_dat()
 			j++;
 		}
 	}
-	printf("j = %d\n",j); 
 	if ( (j >= 40) && (dht11_dat[4] == ( (dht11_dat[0] + dht11_dat[1] + dht11_dat[2] + dht11_dat[3]) & 0xFF)) )
 	{
 		f = dht11_dat[2] * 9. / 5. + 32;
