@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #define MAXTIMINGS	85
-#define DHTPIN		7
+#define DHTPIN		27
 int dht11_dat[5] = { 0, 0, 0, 0, 0 };
  
 void read_dht11_dat()
@@ -42,14 +42,13 @@ void read_dht11_dat()
 		if ( (i >= 4) && (i % 2 == 0) )
 		{
 			dht11_dat[j / 8] <<= 1;
-			if ( counter > 16 )
+			if ( counter > 50 )
 				dht11_dat[j / 8] |= 1;
 			j++;
 		}
 	}
- 
-	if ( (j >= 40) &&
-	     (dht11_dat[4] == ( (dht11_dat[0] + dht11_dat[1] + dht11_dat[2] + dht11_dat[3]) & 0xFF) ) )
+	printf("j = %d\n",j); 
+	if ( (j >= 40) && (dht11_dat[4] == ( (dht11_dat[0] + dht11_dat[1] + dht11_dat[2] + dht11_dat[3]) & 0xFF)) )
 	{
 		f = dht11_dat[2] * 9. / 5. + 32;
 		printf( "Humidity = %d.%d %% Temperature = %d.%d C (%.1f F)\n",
