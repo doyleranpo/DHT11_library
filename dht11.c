@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define MAX_TIMINGS 85
-#define DHT_PIN     27
+#define DHT_PIN     12
 
 #ifndef CONSUMER
 #define CONSUMER    "Consumer"
@@ -20,28 +20,46 @@ int gpio_set_output( char *chipname, unsigned int line_num)
 {
     chip = gpiod_chip_open_by_name(chipname);
     if (!chip)
+    {
+	perror("Chip fail");
         return 0;
+    }
     
     line = gpiod_chip_get_line(chip, line_num);
     if (!line)
+    {
+	perror("Line fail");
         gpiod_chip_close(chip);
-        
+    }
+
     if (gpiod_line_request_output(line, CONSUMER, 0) < 0)
+	{
+		perror("Set mode fail");
         gpiod_line_release(line);
+	}
 }
 
 int gpio_set_input( char *chipname, unsigned int line_num)
 {
     chip = gpiod_chip_open_by_name(chipname);
     if (!chip)
+    { 
+	perror("Open chip failed");   
         return 0;
+    }
     
     line = gpiod_chip_get_line(chip, line_num);
     if (!line)
+    {
+	perror("Get line failed");
         gpiod_chip_close(chip);
-        
+    }
+
     if (gpiod_line_request_input(line, CONSUMER) < 0)
+    {
+	perror("Request line as input failed");
         gpiod_line_release(line);
+    }
 }
 
 void write_value(int val)
@@ -70,6 +88,7 @@ void read_dht()
     
     gpio_set_output("gpiochip0", DHT_PIN);
     write_value(0);
+    gpiod_line_release(line);
     usleep(18000);
     
     gpio_set_input("gpiochip0", DHT_PIN);
