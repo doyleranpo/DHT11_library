@@ -65,15 +65,21 @@ int gpio_set_input( char *chipname, unsigned int line_num)
 void write_value(int val)
 {
     int ret = gpiod_line_set_value(line, val);
-    if (ret < 0) 
+    if (ret < 0)
+    {
+	perror("line issue"); 
         gpiod_line_release(line);
+    }
 }
 
 int read_value()
 {
     int val = gpiod_line_get_value(line);
-    if (val < 0)
+    if (val < 0 )
+    {
+	perror("Line issue");
         gpiod_line_release(line);
+    }
     return val;
 }
     
@@ -92,31 +98,33 @@ void read_dht()
     usleep(18000);
     
     gpio_set_input("gpiochip0", DHT_PIN);
-    
+     
     for ( i = 0; i < MAX_TIMINGS; i++ )
     {
         counter = 0;
         while ( read_value() == laststate )
         {
+	    //printf("1\n");
             counter++;
             usleep(1000);
             if ( counter == 255 )
                 break;
         }
         laststate = read_value();
-        
+        printf("2\n");
         if (counter == 255)
             break;
            
         if ( (i >= 4) && (i % 2 == 0) )
         {
-            data[j / 8] <<= 1;
+            printf("i = %d\n",i);
+	    data[j / 8] <<= 1;
             if (counter > 50)
                 data[j / 8] |= 1;
             j++;
         }
     }
-    
+    printf("i = %d j = %d\n",i,j); 
     if ((j>=40) && (data[4] == ( ( data[0] + data[1] + data[2] + data[3]) & 0xFF)))
     {
         printf("Humidity = %d/%d %% Temperature = %d.%d C\n",data[0],data[1],data[2],data[3]);
