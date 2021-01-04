@@ -18,7 +18,8 @@ uint64_t tmicsec()
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    uint64_t time_mic_sec = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_mic_sec =( 1000000 * tv.tv_sec) + tv.tv_usec;
+    //printf("time = %ld\n", time_mic_sec);
     return time_mic_sec;
 }
 
@@ -91,7 +92,6 @@ int read_value()
 
 void getDHT11Data()
 {
-    uint8_t data;
     gpio_set_output("gpiochip0", DHT_PIN);
     write_value(0);
     usleep(18000);
@@ -100,26 +100,34 @@ void getDHT11Data()
     gpiod_line_release(line);    
     
     gpio_set_input("gpiochip0", DHT_PIN);
+    int i,data, k;
     uint8_t buf[40];
-    uint64_t t,t5;
-    for (int i = 0; i < 40; i++)
+    unsigned long t,t5;
+    //usleep(1000);
+    printf("Entering loop\n");
+    for (i = 0; i < 40; i++)
     {
-        printf("1st\n");
-        while(read_value() != 0);   
-        
-        t = tmicsec();
-        printf("2nd\n");
-        while(read_value() != 1);
-        
-        
-        t5 = tmicsec();
-        buf[i] = t5 - t > 50;
-        printf("bit[%d] = %d\n",i,data);
+	//if(i == 0) continue;
+	printf("b");
+	data = 0;
+        while(data != 1)
+	{
+		data = read_value();
+		printf("");
+	}
+
+        t =(unsigned long) tmicsec();
+        while(data != 0){
+		data = read_value();
+	}
+        t5 = (unsigned long) tmicsec();     
+        buf[i] = ((t5-t)>50)?1:0;
+        printf("%d ",buf[i]);
     }
     
     uint8_t RHH = 0, RHL = 0, TH = 0, TL = 0, CheckSum = 0;
-    
-    for (int j = 0; j < 8; j++)
+    int j;
+    for ( j = 0; j < 8; j++)
     {
         RHH = (RHH<<1) | buf[j];
         RHL = (RHL<<1) | buf[j+8];
@@ -127,7 +135,8 @@ void getDHT11Data()
         TL = (TL<<1) | buf[j+24];
         CheckSum = (CheckSum<<1) | buf[j+32];
     }
-    printf("Humidity = %d.%d %%\n",RHH,RHL);
+    printf("\nHumidity = %d.%d %%\n",RHH,RHL);
+    printf("Temperature = %d.%d\n",TH,TL);
 }
 
 int main()
