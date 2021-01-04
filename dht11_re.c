@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
-
+#include <asm/msr.h>
 #define MAX_TIMINGS 85
 #define DHT_PIN     12
 
@@ -93,19 +93,20 @@ void getDHT11Data()
     
     gpio_set_input("gpiochip0", DHT_PIN);
     uint8_t buf[40];
+    uint32_t t,t5;
     for (int i = 0; i < 40; i++)
     {
+	printf("1st\n");
         while(read_value() != 0);   
-        usleep(50);
-    
-        while(read_value() != 1);
-        usleep(40);
         
-        data = read_value();
-        if ( data == 1 ) 
-            buf[i] = 1;
-        else 
-            buf[i] = 0;
+        rdtscl(t);
+	printf("2nd\n");
+        while(read_value() != 1);
+        
+        
+	printf("bit[%d] = %d\n",i,data);
+	rdtscl(t5);
+        buf[i] = t5 - t > 50;
     }
     
     uint8_t RHH = 0, RHL = 0, TH = 0, TL = 0, CheckSum = 0;
