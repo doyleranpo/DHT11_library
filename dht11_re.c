@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <asm/msr.h>
+#include <sys/time.h>
 #define MAX_TIMINGS 85
 #define DHT_PIN     12
 
@@ -13,6 +13,14 @@
 
 struct gpiod_chip *chip;
 struct gpiod_line *line;
+
+uint64_t tmicsec()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t time_mic_sec = 1000000 * tv.tv_sec + tv.tv_usec;
+    return time_mic_sec;
+}
 
 int gpio_set_output( char *chipname, unsigned int line_num)
 {
@@ -93,20 +101,20 @@ void getDHT11Data()
     
     gpio_set_input("gpiochip0", DHT_PIN);
     uint8_t buf[40];
-    uint32_t t,t5;
+    uint64_t t,t5;
     for (int i = 0; i < 40; i++)
     {
-	printf("1st\n");
+        printf("1st\n");
         while(read_value() != 0);   
         
-        rdtscl(t);
-	printf("2nd\n");
+        t = tmicsec();
+        printf("2nd\n");
         while(read_value() != 1);
         
         
-	printf("bit[%d] = %d\n",i,data);
-	rdtscl(t5);
+        t5 = tmicsec();
         buf[i] = t5 - t > 50;
+        printf("bit[%d] = %d\n",i,data);
     }
     
     uint8_t RHH = 0, RHL = 0, TH = 0, TL = 0, CheckSum = 0;
