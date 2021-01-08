@@ -11,131 +11,147 @@
 #define CONSUMER    "Consumer"
 #endif
 
-struct gpiod_chip *chip;
-struct gpiod_line *line;
+// struct gpiod_chip *chip;
+// struct gpiod_line *line;
 
-int data[5] = { 0, 0, 0, 0, 0 };
 
-int gpio_set_output( char *chipname, unsigned int line_num)
+uint64_t getMicro()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t microsec = (1000000 * tv.tv_sec) + tv.tv_usec;
+    return microsec;
+}
+
+int request_open_line(struct gpiod_chip* chip, struct gpiod_line* line, char *chipname, unsigned int line_num)
 {
     chip = gpiod_chip_open_by_name(chipname);
-    if (!chip)
+    if(!chip)
     {
-	perror("Chip fail");
-        return 0;
+        perror("Open chip failed\n");
+    end:
+        exit(1);
     }
     
     line = gpiod_chip_get_line(chip, line_num);
-    if (!line)
+    if(!line)
     {
-	perror("Line fail");
+        perror("Getting line failed\n");
         gpiod_chip_close(chip);
+        goto end;
     }
-
-    if (gpiod_line_request_output(line, CONSUMER, 0) < 0)
-	{
-		perror("Set mode fail");
-        gpiod_line_release(line);
-	}
+    return 0;
 }
 
-int gpio_set_input( char *chipname, unsigned int line_num)
+void gpio_set_input(struct gpiod_chip* chip, struct gpiod_line* line, char *chipname, unsigned int line_num)
 {
-    chip = gpiod_chip_open_by_name(chipname);
-    if (!chip)
-    { 
-	perror("Open chip failed");   
-        return 0;
-    }
-    
-    line = gpiod_chip_get_line(chip, line_num);
-    if (!line)
+    int ret;
+    if (request_open_line(chip, line, chipname, line_num) == 0)
     {
-	perror("Get line failed");
-        gpiod_chip_close(chip);
-    }
-
-    if (gpiod_line_request_input(line, CONSUMER) < 0)
-    {
-	perror("Request line as input failed");
-        gpiod_line_release(line);
+        ret = gpiod_line_request_input(line, "DHT");
+        if (ret < 0)
+        {
+            perror("Set mode failed\n");
+            gpiod_line_release(line);
+            gpiod_chip_close(chip);
+            exit(1);
+        }
     }
 }
 
-void write_value(int val)
+void gpio_set_output(struct gpiod_chip* chip, struct gpiod_line* line, char *chipname, unsigned line_num)
+{
+    int ret;
+    if (request_open_line(chip, line, chipname, line_num) == 0)
+    {
+        ret = gpiod_line_request_output(line, "DHT", 0);
+        if (ret < 0)
+        {
+            perror("Set mode failed\n");
+            gpiod_line_release(line);
+            gpiod_chip_close(chip);
+            exit(1)
+        }
+    }
+}
+
+void write_value(struct gpiod_chip* chip, struct gpiod_line* line, int val)
 {
     int ret = gpiod_line_set_value(line, val);
     if (ret < 0)
     {
-	perror("line issue"); 
+        perror("Line busy\n");
         gpiod_line_release(line);
+        gpiod_chip_close(chip);
+        exit(1);
     }
 }
 
-int read_value()
+int read_value(struct gpiod_chip* chip, struct gpiod_line* line)
 {
     int val = gpiod_line_get_value(line);
-    if (val < 0 )
+    if ( val < 0 )
     {
-	perror("Line issue");
+        perror("Line issue\n");
         gpiod_line_release(line);
+        gpiod_chip_close(chip);
+        exit(1);
     }
-    return val;
 }
-    
-void read_dht()
+
+void getDHTData(struct gpiod_chip* chip, struct gpiod_line* line)
 {
-    uint8_t laststate = 1;
-    uint8_t counter = 0;
-    uint8_t j = 0, i;
-    
-    data[0] = data[1] = data[2] = data[3] = data[4] = 0;
-    
-    
-    gpio_set_output("gpiochip0", DHT_PIN);
-    write_value(0);
-    gpiod_line_release(line);
+    uint64_t t, t5;
+    uint8_t buf[40];
+    uint8_t RHH = 0, RHL = 0, TH = 0, TL = 0, CheckSum = 0;
+    int i,k,data;
+    for (int l = 0; l < 40; l++)
+    {
+        buf[l] = 0;
+    }
+    gpio_set_output(chip, line, "gpiochip0", DHT_PIN);
+    write_value(chip, line, 0);
     usleep(18000);
+    write_value(1);
     
-    gpio_set_input("gpiochip0", DHT_PIN);
-     
-    for ( i = 0; i < MAX_TIMINGS; i++ )
+    gpiod_line_release(line);
+    
+    gpio_set_input(chip, line, "gpiochip0", DHT_PIN);
+    
+    for (i = 0; i < 40; i++)
     {
-        counter = 0;
-        while ( read_value() == laststate )
+        data = 0;
+        while(data != 1)
         {
-	    //printf("1\n");
-            counter++;
-            usleep(1000);
-            if ( counter == 255 )
-                break;
+            data = read_value(chip, line);
         }
-        laststate = read_value();
-        printf("2\n");
-        if (counter == 255)
-            break;
-           
-        if ( (i >= 4) && (i % 2 == 0) )
+        
+        t = getMicro();
+        
+        while(data != 0)
         {
-            printf("i = %d\n",i);
-	    data[j / 8] <<= 1;
-            if (counter > 50)
-                data[j / 8] |= 1;
-            j++;
+            data = read_value(chip, line);
         }
+        
+        t5 = getMicro();
+        buf[i] = ((t5-t)>50)?1:0;
+        printf("%d ", buf[i]);
     }
-    printf("i = %d j = %d\n",i,j); 
-    if ((j>=40) && (data[4] == ( ( data[0] + data[1] + data[2] + data[3]) & 0xFF)))
+    for ( k = 0; k < 8; k++)
     {
-        printf("Humidity = %d/%d %% Temperature = %d.%d C\n",data[0],data[1],data[2],data[3]);
+        RHH = (RHH<<1) | buf[j];
+        RHL = (RHL<<1) | buf[j+8];
+        TH = (TH<<1) | buf[j+16];
+        TL = (TL<<1) | buf[j+24];
+        CheckSum = (CheckSum<<1) | buf[j+32];
     }
-    else
-        printf("Data not good\n");
+    printf("\nHumidity = %d.%d %%\n", RHH, RHL);
+    printf("Temperature = %d.%d\n", TH, TL);
 }
 
 int main()
 {
-    read_dht();
-    
-    return 0;
+    struct gpiod_chip *chip;
+    struct gpiod_line *line;
+    getDHTData(chip, line);
 }
