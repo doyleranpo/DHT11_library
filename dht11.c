@@ -46,8 +46,6 @@ int request_open_line(struct gpiod_chip* chip, struct gpiod_line* line, char *ch
 void gpio_set_input(struct gpiod_chip* chip, struct gpiod_line* line, char *chipname, unsigned int line_num)
 {
     int ret;
-    if (request_open_line(chip, line, chipname, line_num) == 0)
-    {
         ret = gpiod_line_request_input(line, "DHT");
         if (ret < 0)
         {
@@ -56,15 +54,12 @@ void gpio_set_input(struct gpiod_chip* chip, struct gpiod_line* line, char *chip
             gpiod_chip_close(chip);
             exit(1);
         }
-    }
+    
 }
 
 void gpio_set_output(struct gpiod_chip* chip, struct gpiod_line* line, char *chipname, unsigned line_num)
 {
     int ret, inf;
-    inf = request_open_line(chip, line, chipname, line_num);
-    if (inf == 0)
-    {
         ret = gpiod_line_request_output(line, "DHT", 0);
         if (ret < 0)
         {
@@ -73,7 +68,7 @@ void gpio_set_output(struct gpiod_chip* chip, struct gpiod_line* line, char *chi
             gpiod_chip_close(chip);
             exit(1);
         }
-    }
+    
 }
 
 void write_value(struct gpiod_chip* chip, struct gpiod_line* line, int val)
@@ -154,5 +149,8 @@ int main()
 {
     struct gpiod_chip *chip;
     struct gpiod_line *line;
-    getDHTData(chip, line);
+    int var = request_open_line(chip, line,"gpiochip0",DHT_PIN);
+    if (!var)
+    	getDHTData(chip, line);
+    return 0;
 }
