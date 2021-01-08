@@ -102,6 +102,10 @@ void getDHT11Data()
     gpio_set_input("gpiochip0", DHT_PIN);
     int i,data, k;
     uint8_t buf[40];
+    for (int l = 0; l < 40; l++)
+    {
+        buf[l] = 0;
+    }
     unsigned long t,t5;
     //usleep(1000);
     printf("Entering loop\n");
