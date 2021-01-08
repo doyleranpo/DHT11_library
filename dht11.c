@@ -61,8 +61,9 @@ void gpio_set_input(struct gpiod_chip* chip, struct gpiod_line* line, char *chip
 
 void gpio_set_output(struct gpiod_chip* chip, struct gpiod_line* line, char *chipname, unsigned line_num)
 {
-    int ret;
-    if (request_open_line(chip, line, chipname, line_num) == 0)
+    int ret, inf;
+    inf = request_open_line(chip, line, chipname, line_num);
+    if (inf == 0)
     {
         ret = gpiod_line_request_output(line, "DHT", 0);
         if (ret < 0)
