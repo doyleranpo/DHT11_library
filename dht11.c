@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
-
+#include <sys/time.h>
 #define MAX_TIMINGS 85
 #define DHT_PIN     12
 
@@ -70,7 +70,7 @@ void gpio_set_output(struct gpiod_chip* chip, struct gpiod_line* line, char *chi
             perror("Set mode failed\n");
             gpiod_line_release(line);
             gpiod_chip_close(chip);
-            exit(1)
+            exit(1);
         }
     }
 }
@@ -112,7 +112,7 @@ void getDHTData(struct gpiod_chip* chip, struct gpiod_line* line)
     gpio_set_output(chip, line, "gpiochip0", DHT_PIN);
     write_value(chip, line, 0);
     usleep(18000);
-    write_value(1);
+    write_value(chip, line, 1);
     
     gpiod_line_release(line);
     
@@ -139,11 +139,11 @@ void getDHTData(struct gpiod_chip* chip, struct gpiod_line* line)
     }
     for ( k = 0; k < 8; k++)
     {
-        RHH = (RHH<<1) | buf[j];
-        RHL = (RHL<<1) | buf[j+8];
-        TH = (TH<<1) | buf[j+16];
-        TL = (TL<<1) | buf[j+24];
-        CheckSum = (CheckSum<<1) | buf[j+32];
+        RHH = (RHH<<1) | buf[k];
+        RHL = (RHL<<1) | buf[k+8];
+        TH = (TH<<1) | buf[k+16];
+        TL = (TL<<1) | buf[k+24];
+        CheckSum = (CheckSum<<1) | buf[k+32];
     }
     printf("\nHumidity = %d.%d %%\n", RHH, RHL);
     printf("Temperature = %d.%d\n", TH, TL);
