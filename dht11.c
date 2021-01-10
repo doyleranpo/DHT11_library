@@ -23,21 +23,21 @@ uint64_t getMicro()
     return microsec;
 }
 
-int request_open_line(struct gpiod_chip* chip, struct gpiod_line* line, char *chipname, unsigned int line_num)
+int request_open_line(struct gpiod_chip** chip, struct gpiod_line** line, char *chipname, unsigned int line_num)
 {
-    chip = gpiod_chip_open_by_name(chipname);
-    if(!chip)
+    *chip = gpiod_chip_open_by_name(chipname);
+    if(!*chip)
     {
         perror("Open chip failed\n");
     end:
         exit(1);
     }
     
-    line = gpiod_chip_get_line(chip, line_num);
-    if(!line)
+    *line = gpiod_chip_get_line(*chip, line_num);
+    if(!*line)
     {
         perror("Getting line failed\n");
-        gpiod_chip_close(chip);
+        gpiod_chip_close(*chip);
         goto end;
     }
     return 0;
@@ -113,7 +113,7 @@ void getDHTData(struct gpiod_chip* chip, struct gpiod_line* line)
     gpiod_line_release(line);
     
     gpio_set_input(chip, line, "gpiochip0", DHT_PIN);
-    
+restart:
     for (i = 0; i < 40; i++)
     {
         data = 0;
@@ -141,16 +141,27 @@ void getDHTData(struct gpiod_chip* chip, struct gpiod_line* line)
         TL = (TL<<1) | buf[k+24];
         CheckSum = (CheckSum<<1) | buf[k+32];
     }
+    if ( CheckSum == ((RHH + RHL + TH + TL) & 0xFF)) {
     printf("\nHumidity = %d.%d %%\n", RHH, RHL);
     printf("Temperature = %d.%d\n", TH, TL);
+    }
+    else 
+	    printf("Bad Values\n");
 }
 
 int main()
 {
     struct gpiod_chip *chip;
     struct gpiod_line *line;
-    int var = request_open_line(chip, line,"gpiochip0",DHT_PIN);
+    int var = request_open_line(&chip, &line,"gpiochip0",DHT_PIN);
     if (!var)
-    	getDHTData(chip, line);
+    {
+	while(1) {
+    		getDHTData(chip, line);
+		sleep(10);
+	}
+    }
+    gpiod_line_release(line);
+    gpiod_chip_close(chip);
     return 0;
 }
